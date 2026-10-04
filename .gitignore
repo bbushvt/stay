@@ -1,0 +1,36 @@
+# Go build output
+/stay
+/bin/
+*.exe
+*.test
+*.out
+coverage.*
+
+# Frontend
+node_modules/
+web/dist/
+*.tsbuildinfo
+.vite/
+
+# Release builds (GoReleaser)
+/dist/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings (keep shared project settings)
+.claude/settings.local.json

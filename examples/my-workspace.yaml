@@ -1,0 +1,31 @@
+# A practical STAY layout: Claude Code in its own tab, plus a working tab with
+# an editor/dev shell on the left and run + test shells stacked on the right.
+#
+# Install:  mkdir -p ~/.config/stay && cp examples/my-workspace.yaml ~/.config/stay/layout.yaml
+# Then restart stay. (Terminals start in $HOME/<repo> unless `dir` says otherwise.)
+
+terminals:
+  - id: claude
+    name: Claude
+    command: claude --continue   # resume the last conversation if the daemon restarts
+
+  - id: dev
+    name: Dev
+
+  - id: run
+    name: Run
+
+  - id: test
+    name: Test
+
+tabs:
+  - title: Claude
+    root: claude
+
+  - title: Work
+    root:
+      split: horizontal          # side by side
+      children:
+        - dev
+        - split: vertical        # stacked
+          children: [run, test]

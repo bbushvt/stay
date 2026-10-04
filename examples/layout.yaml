@@ -1,0 +1,33 @@
+# STAY layout. Copy to ~/.config/stay/layout.yaml (or pass --config).
+#
+# dir: optional. Defaults to $HOME/<repo from $CODER_GIT_REPO_URL>, else $HOME.
+#      Supports ~, $VARS, and paths relative to that default directory.
+#      Quote "~" when used alone (bare ~ is YAML null).
+# command: optional. Typed into the shell after it starts, so quitting it
+#      leaves you at a prompt.
+terminals:
+  - id: claude
+    name: Claude
+    command: claude --continue
+  - id: dev
+    name: Dev
+  - id: test
+    name: Test
+    dir: .
+  - id: logs
+    name: Logs
+    dir: "~"          # quote it: a bare ~ is YAML null, i.e. "not set"
+    command: tail -f /tmp/app.log
+
+# Each tab's root is a terminal id, or a split of two or more nodes that can
+# themselves be splits. Each terminal may appear once.
+tabs:
+  - title: Claude
+    root: claude
+  - title: Work
+    root:
+      split: horizontal          # side by side; `vertical` stacks
+      children:
+        - dev
+        - split: vertical
+          children: [test, logs]

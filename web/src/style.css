@@ -1,0 +1,100 @@
+:root {
+  --bg: #000;
+  --bar: #16181d;
+  --fg: #c9d1d9;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --sep: #2a2e37;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+  font: 13px system-ui, sans-serif;
+}
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bar);
+  padding: 4px 6px 0;
+  flex: none;
+}
+.tab {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 6px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+.tab:hover {
+  color: var(--fg);
+}
+.tab.selected {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+.stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.tab-body {
+  position: absolute;
+  inset: 0;
+}
+.sep {
+  background: var(--sep);
+  flex: none;
+}
+.sep.horizontal {
+  width: 4px;
+  cursor: col-resize;
+}
+.sep.vertical {
+  height: 4px;
+  cursor: row-resize;
+}
+.sep:hover,
+.sep[data-separator="active"] {
+  background: var(--accent);
+}
+.term {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.term-host {
+  width: 100%;
+  height: 100%;
+}
+.term-exited {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: rgba(22, 24, 29, 0.92);
+}
+.term-exited button {
+  font: inherit;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.notice {
+  padding: 24px;
+}

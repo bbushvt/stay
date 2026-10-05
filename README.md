@@ -189,7 +189,8 @@ module "stay" {
 
 A ready-made layout to start from is [`examples/my-workspace.yaml`](examples/my-workspace.yaml).
 
-**Change the port or where the button appears:**
+**Change the port or where the button appears** (`order = 1` puts the button ahead of apps with
+a higher number; `group` collects it under a named section, see [All module inputs](#all-module-inputs)):
 
 ```tf
 module "stay" {
@@ -212,7 +213,8 @@ module "stay" {
 | `share` | `"owner"` | `owner`, `authenticated` or `public`. STAY has no login and a terminal is a shell: keep `owner` |
 | `repo` | `"bbushvt/stay"` | GitHub `owner/name` that publishes releases (set this if you fork) |
 | `install_dir` | `"$HOME/.local/bin"` | where the binary is installed |
-| `order`, `group` | `null` | placement of the app button |
+| `order` | `null` | sort position of the **STAY** button among the workspace's apps: lower numbers come first, apps with the same (or no) order are sorted by name. Use it to put STAY first, e.g. `1` |
+| `group` | `null` | name of a group to put the button under, e.g. `"Terminals"`. Apps with the same group name are collected into one expandable section on the workspace page. Unset means a standalone button |
 
 Output: `app_url` (the in-workspace URL).
 
@@ -338,6 +340,43 @@ What the page does and how to use it is described in [Using STAY](#using-stay).
 ---
 
 ## Configure terminals and layout
+
+### How the layout works
+
+A layout has two parts, and they are kept separate on purpose:
+
+1. **`terminals`** defines *what runs*: each entry is one shell with an `id`, a display `name`,
+   an optional working directory (`dir`) and an optional startup `command`. The daemon starts
+   every terminal here when it starts, whether or not it is shown anywhere.
+2. **`tabs`** defines *where it is shown*: each tab has a `title` and a `root`. The root is
+   either a terminal `id` (one full-size pane) or a **split**: a `split` direction plus a
+   list of `children`, each of which is a terminal id or another split. Nesting splits gives
+   you grids.
+
+```
+Tab "Work":  root = split horizontal [ dev, split vertical [ test, logs ] ]
+
+  ┌──────────┬──────────┐
+  │          │   test   │
+  │   dev    ├──────────┤
+  │          │   logs   │
+  └──────────┴──────────┘
+```
+
+- **`horizontal`** places children side by side (left to right); **`vertical`** stacks them
+  (top to bottom). A split needs at least two children.
+- **Each terminal appears in exactly one pane.** A terminal that is defined but not placed
+  in any tab still runs, but you cannot see it, and the daemon logs a warning at startup.
+- **Pane sizes are not part of the file.** Splits start evenly divided; drag the dividers
+  to resize. Sizes and the selected tab are remembered per browser.
+- **Terminals and views are independent.** Switching tabs, closing the browser or opening it
+  on another device only changes what you are looking at; the shells keep running. Every
+  browser shows the same layout and attaches to the same terminals.
+- **The file is read once, when the daemon starts.** Editing it has no effect until the
+  daemon restarts, and a restart ends all running shells.
+- If a terminal's process exits, its pane stays in place with a **Restart** button.
+
+### Layout file
 
 The daemon looks for a layout in this order:
 

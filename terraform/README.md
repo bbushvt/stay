@@ -37,7 +37,8 @@ module "stay" {
 | `share` | `"owner"` | STAY has no login of its own and a terminal is a shell: keep `owner` |
 | `repo` | `"bbushvt/stay"` | where releases come from |
 | `install_dir` | `"$HOME/.local/bin"` | |
-| `order`, `group` | `null` | app button placement |
+| `order` | `null` | sort position of the button: lower numbers first, ties sorted by name |
+| `group` | `null` | group name; apps sharing it are collected into one section on the workspace page |
 
 ## Behaviour to know about
 

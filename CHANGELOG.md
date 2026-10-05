@@ -3,6 +3,32 @@
 Each release's notes are taken from the matching `## vX.Y.Z` section below and published as
 the GitHub release body (see `.github/workflows/release.yml`).
 
+## v0.3.0
+
+### Added
+- **Copy and paste shortcuts in the terminal.** On Linux and Windows, Ctrl-C copies when text
+  is selected (with no selection it still sends an interrupt to the program) and Ctrl-V
+  pastes. Ctrl-Shift-C and Ctrl-Shift-V always copy and paste. On macOS, Cmd-C and Cmd-V
+  copy and paste, and Ctrl-C always interrupts. Paste uses the browser's native paste event,
+  so bracketed paste works and no clipboard permission prompt appears.
+
+### Changed
+- Ctrl-V now pastes on Linux and Windows instead of sending the literal-next character
+  (`^V`) to the shell. Use Ctrl-Shift-V or your shell's own binding if you relied on it.
+
+### Development
+- Added `vitest` (dev dependency) with unit tests for the key handling; `make check` runs it.
+
+### Documentation
+- README: the new shortcuts are described under "Using STAY".
+
+### Upgrading
+This is a frontend change inside the daemon binary. A running daemon is never restarted by
+the module, so the new version takes effect the next time the daemon starts (for example
+after a workspace restart). Restarting the daemon ends running shells. To use this release,
+set `ref=v0.3.0` in your template's `module "stay"` source (`stay_version` defaults to
+`latest`).
+
 ## v0.2.0
 
 ### Added

@@ -109,6 +109,10 @@ Once the **STAY** button opens the page:
   second tab, side by side.
 - **Type like any terminal.** Each one is a real shell in your repo directory (or `$HOME`).
   Links in the output are clickable, and programs can copy to your clipboard.
+- **Copy and paste** work like a desktop terminal. On Linux and Windows, **Ctrl-C** copies
+  when text is selected (with nothing selected it still sends an interrupt) and **Ctrl-V**
+  pastes; **Ctrl-Shift-C/V** always copy and paste. On a Mac, use **Cmd-C** and **Cmd-V**;
+  **Ctrl-C** always interrupts.
 - **Switch tabs** with the tab bar. Terminals on hidden tabs keep running and stay connected.
 - **Resize splits** by dragging the divider. Sizes and the selected tab are remembered in
   that browser only.

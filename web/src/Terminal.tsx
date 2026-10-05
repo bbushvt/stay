@@ -6,6 +6,7 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 import { restartTerminal } from "./api";
+import { isMac, keyAction } from "./keys";
 import { type ClientMessage, type ServerMessage, terminalSocketURL } from "./protocol";
 
 // `active` is whether this pane's tab is showing. Hidden terminals stay
@@ -43,6 +44,19 @@ export function Terminal({ id, active }: { id: string; active: boolean }) {
     };
     doFit();
     focusRef.current = () => term.focus();
+
+    // Copy/paste shortcuts (see keys.ts). Paste returns false without
+    // preventDefault so the browser's native paste event reaches xterm, which
+    // handles bracketed paste and needs no clipboard-read permission.
+    term.attachCustomKeyEventHandler((e) => {
+      const action = keyAction(e, term.hasSelection(), isMac);
+      if (action === "copy") {
+        e.preventDefault();
+        void navigator.clipboard.writeText(term.getSelection()).catch(() => {});
+        term.clearSelection();
+      }
+      return action === "pass";
+    });
 
     const enc = new TextEncoder();
     let ws: WebSocket | null = null;

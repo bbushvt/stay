@@ -18,6 +18,7 @@ test:
 
 check: test
 	cd web && npm run typecheck
+	cd web && npm test
 	gofmt -l . | (! grep .)
 	go vet ./...
 

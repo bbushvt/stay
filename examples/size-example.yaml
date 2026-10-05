@@ -1,0 +1,17 @@
+terminals:
+  - id: claude-code
+    name: Claude Code
+    command: /home/coder/.local/bin/claude --dangerously-skip-permissions
+  - id: shell1
+    name: Shell 1
+  - id: shell2
+    name: Shell 2
+
+tabs:
+  - title: Dev
+    root:
+      split: horizontal         # side by side
+      children:
+        - claude-code
+        - split: vertical       # stacked
+          children: [shell1, shell2]

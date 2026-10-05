@@ -150,7 +150,15 @@ tabs:
 Rules: ids unique; every pane names a defined terminal; each terminal appears in exactly
 one pane (two views of one PTY is allowed by the design but is nearly always a config
 slip); splits have >= 2 children. Terminals defined but not placed produce a startup
-warning. Pane sizes are not configured; the user drags dividers and the browser remembers.
+warning.
+
+Sizes: any child of a split may carry `size: <percent>` (0 < size < 100; use the
+`{pane: id, size: N}` form for a terminal). All children sized -> must sum to 100; some
+sized -> the sized ones must sum to < 100 and the rest share the remainder equally; none ->
+equal shares. `size` on a tab root is an error. Sizes are initial values only: the user
+can still drag dividers and the browser remembers (localStorage). The configured sizes are
+part of the storage key, so changing a size in the file resets that split to the new
+values instead of being masked by a stale remembered layout.
 
 ### Working directory
 
@@ -173,7 +181,7 @@ Flags: `--listen` (default `127.0.0.1:7681`), `--config`.
 ### HTTP API addition
 
 `GET /api/layout` -> `{workspace?, tabs: [{title, root}]}` where `root` is
-`{kind: "pane", terminal}` or `{kind: "split", direction, children}`.
+`{kind: "pane", terminal, size?}` or `{kind: "split", direction, children, size?}`.
 
 ## 7. Security model
 

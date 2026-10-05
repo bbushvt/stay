@@ -58,13 +58,13 @@ It is the only thing STAY needs:
 
 ```tf
 module "stay" {
-  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
+  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.2.0"
   agent_id = coder_agent.main.id   # use your agent's reference if it isn't named "main"
 }
 ```
 
 The module installs the STAY binary, starts the daemon, and adds the **STAY** button to the
-workspace page. `ref=v0.1.0` is the STAY release to use; pinning a tag keeps template updates
+workspace page. `ref=v0.2.0` is the STAY release to use; pinning a tag keeps template updates
 deliberate.
 
 **Recommended: make sure your agent exports `CODER_GIT_REPO_URL`.** STAY uses it to start each
@@ -144,9 +144,9 @@ starts):
 
 ```tf
 module "stay" {
-  source       = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
+  source       = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.2.0"
   agent_id     = coder_agent.main.id
-  stay_version = "0.1.0"
+  stay_version = "0.2.0"
 }
 ```
 
@@ -155,7 +155,7 @@ starts):
 
 ```tf
 module "stay" {
-  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
+  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.2.0"
   agent_id = coder_agent.main.id
 
   layout = <<-YAML
@@ -181,7 +181,7 @@ not in addition to it):
 
 ```tf
 module "stay" {
-  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
+  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.2.0"
   agent_id = coder_agent.main.id
   layout   = file("${path.module}/stay-layout.yaml")
 }
@@ -194,7 +194,7 @@ a higher number; `group` collects it under a named section, see [All module inpu
 
 ```tf
 module "stay" {
-  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
+  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.2.0"
   agent_id = coder_agent.main.id
   port     = 7700
   order    = 1
@@ -341,17 +341,39 @@ What the page does and how to use it is described in [Using STAY](#using-stay).
 
 ## Configure terminals and layout
 
+A layout file says which shells STAY runs and how they are arranged in the browser. This
+section is the full reference, with examples you can copy.
+
+- [Where the file goes](#where-the-file-goes)
+- [How the layout works](#how-the-layout-works)
+- [Terminals](#terminals)
+- [Tabs and splits](#tabs-and-splits)
+- [Sizes](#sizes)
+- [Examples](#examples)
+- [Validation and common mistakes](#validation-and-common-mistakes)
+
+### Where the file goes
+
+The daemon looks for a layout in this order:
+
+1. `--config <path>` (an error if the file is missing)
+2. `~/.config/stay/layout.yaml` (honours `$XDG_CONFIG_HOME`)
+3. the built-in layout: a **Claude** tab, and a **Shells** tab with **Dev** and **Test** side by side
+
+With the Coder module, pass the layout through the module's `layout` input (see the
+[module variations](#variations-each-one-independent)), or put the file at the path above
+yourself. The file is read once, **when the daemon starts**; editing it has no effect until
+the daemon restarts, and a restart ends all running shells.
+
 ### How the layout works
 
-A layout has two parts, and they are kept separate on purpose:
+A layout has two parts, kept separate on purpose:
 
-1. **`terminals`** defines *what runs*: each entry is one shell with an `id`, a display `name`,
-   an optional working directory (`dir`) and an optional startup `command`. The daemon starts
-   every terminal here when it starts, whether or not it is shown anywhere.
-2. **`tabs`** defines *where it is shown*: each tab has a `title` and a `root`. The root is
-   either a terminal `id` (one full-size pane) or a **split**: a `split` direction plus a
-   list of `children`, each of which is a terminal id or another split. Nesting splits gives
-   you grids.
+1. **`terminals`** defines *what runs*: one entry per shell. The daemon starts every
+   terminal when it starts, whether or not it is shown anywhere.
+2. **`tabs`** defines *where it is shown*: each tab has a `title` and a `root`. A root is
+   either a terminal `id` (one full-size pane) or a **split** containing two or more
+   children, each of which is a terminal or another split. Nesting splits builds grids.
 
 ```
 Tab "Work":  root = split horizontal [ dev, split vertical [ test, logs ] ]
@@ -363,63 +385,221 @@ Tab "Work":  root = split horizontal [ dev, split vertical [ test, logs ] ]
   └──────────┴──────────┘
 ```
 
-- **`horizontal`** places children side by side (left to right); **`vertical`** stacks them
-  (top to bottom). A split needs at least two children.
-- **Each terminal appears in exactly one pane.** A terminal that is defined but not placed
-  in any tab still runs, but you cannot see it, and the daemon logs a warning at startup.
-- **Pane sizes are not part of the file.** Splits start evenly divided; drag the dividers
-  to resize. Sizes and the selected tab are remembered per browser.
+- **Each terminal appears in exactly one pane.** One that is defined but not placed in any
+  tab still runs but is invisible; the daemon logs a warning at startup.
 - **Terminals and views are independent.** Switching tabs, closing the browser or opening it
-  on another device only changes what you are looking at; the shells keep running. Every
-  browser shows the same layout and attaches to the same terminals.
-- **The file is read once, when the daemon starts.** Editing it has no effect until the
-  daemon restarts, and a restart ends all running shells.
-- If a terminal's process exits, its pane stays in place with a **Restart** button.
+  on another device only changes what you are looking at. The shells keep running, and every
+  browser shows the same layout attached to the same terminals.
+- If a terminal's process exits, its pane stays where it is with a **Restart** button.
 
-### Layout file
+### Terminals
 
-The daemon looks for a layout in this order:
+```
+terminals:
+  - id: claude
+    name: Claude
+    dir: .
+    command: claude --continue
+```
 
-1. `--config <path>` (an error if the file is missing)
-2. `~/.config/stay/layout.yaml` (honours `$XDG_CONFIG_HOME`)
-3. the built-in layout described above
+| Field | Required | Meaning |
+|---|---|---|
+| `id` | yes | Unique name used to place the terminal in `tabs` and in its URL. No slashes, spaces or URL punctuation (`? # %`) |
+| `name` | no | Label shown in the pane. Defaults to the `id` |
+| `dir` | no | Working directory (below). Defaults to `$HOME/<repo>`, else `$HOME` |
+| `command` | no | Typed into the shell after it starts, as if you had typed it and pressed Enter |
 
-A file that exists but is invalid stops the daemon with a message naming the problem
-(unknown fields, undefined terminals, bad splits, duplicate ids, and so on). Changes need a
-daemon restart, which ends the running shells.
+**`command`** runs inside a normal interactive shell, so quitting the program (for example
+`claude`) leaves you at a prompt instead of a dead pane. It can be a full command line:
+`command: tail -f /tmp/app.log`.
+
+**`dir`** may be:
+
+| Value | Resolves to |
+|---|---|
+| _(omitted)_ | `$HOME/<repo>`, where `<repo>` is the last part of `$CODER_GIT_REPO_URL` without `.git`; `$HOME` if that is unset or the directory doesn't exist yet |
+| `.` or `src` | relative to that default directory |
+| `/var/log` | an absolute path |
+| `"~"` or `~/notes` | your home directory, or under it. **Quote a lone `"~"`**: bare `~` is YAML null, which means "not set" |
+| `$HOME/data` | environment variables are expanded |
+
+The directory must exist, otherwise the daemon refuses to start and names the terminal.
+
+### Tabs and splits
+
+```
+tabs:
+  - title: Work
+    root:
+      split: horizontal
+      children: [dev, test]
+```
+
+Each tab has a `title` (required) and a `root`. A node, anywhere in the tree, is one of:
+
+| Form | Meaning |
+|---|---|
+| `dev` | a pane showing terminal `dev` |
+| `{pane: dev}` | the same, in mapping form. Needed to attach a `size` to a pane |
+| `{split: horizontal, children: [...]}` | children side by side, left to right |
+| `{split: vertical, children: [...]}` | children stacked, top to bottom |
+
+A split needs at least two children. Each child is any node, so splits nest as deep as you
+like. Tabs appear in the tab bar in the order listed.
+
+### Sizes
+
+By default every child of a split gets an equal share. Give children a **`size`** to change
+that. A size is a **percentage of the parent split** (a number above 0 and below 100), and
+it can be set on any node that is a child of a split. A bare terminal id has no place to
+write a size, so use `{pane: id, size: N}` instead. A tab's own `root` cannot have a size.
+
+```yaml
+terminals: [{id: dev}, {id: test}]
+tabs:
+  - title: Work
+    root:
+      split: horizontal
+      children:
+        - {pane: dev, size: 70}     # 70% of the width
+        - {pane: test, size: 30}    # 30%
+```
+
+How sizes are resolved:
+
+- **All children sized:** the sizes must add up to 100.
+- **Some children sized:** the rest share what is left equally. In
+  `[{pane: a, size: 50}, b, c]`, `a` gets 50% and `b` and `c` get 25% each. The sized
+  children must add up to less than 100 so there is room for the others.
+- **None sized:** equal shares.
+- Sizes are relative to the **parent split only**, so a nested split's children are a
+  percentage of that nested split, not of the whole tab.
+- A pane cannot be dragged below 10% of its split.
+
+**Sizes are starting values.** You can still drag dividers in the browser. STAY remembers
+your dragged sizes in that browser only. If you later change a `size` in the layout file,
+that split goes back to the file's values in every browser, and you can drag again from
+there. Splits whose sizes you didn't touch in the file keep their remembered sizes.
+
+### Examples
+
+**One terminal**, the simplest layout:
 
 ```yaml
 terminals:
-  - id: claude                  # used in URLs: no slashes or spaces
-    name: Claude                # label; defaults to the id
-    command: claude --continue  # optional; typed into the shell after it starts
-  - id: dev
-    name: Dev
-    dir: .                      # optional working directory
-  - id: logs
-    name: Logs
-    dir: "~"                    # quote it: a bare ~ is YAML null, i.e. "not set"
-  - id: test
-    name: Test
-
+  - id: main
 tabs:
-  - title: Claude
-    root: claude                # a terminal id...
-  - title: Work
-    root:                       # ...or a split of two or more nodes
-      split: horizontal         # horizontal = side by side, vertical = stacked
-      children:
-        - dev
-        - split: vertical       # splits can nest
-          children: [logs, test]
+  - title: Shell
+    root: main
 ```
 
-- Each terminal may appear in exactly one pane.
-- `command` is typed into a normal shell, so quitting it (for example `claude`) leaves you at
-  a prompt rather than a dead pane.
-- `dir` may be absolute, `~` or `~/x`, contain `$VARS`, or be relative to the default
-  directory. It must exist. When omitted it defaults to `$HOME/<repo>`, with `<repo>` from
-  `$CODER_GIT_REPO_URL`, falling back to `$HOME`.
+**Two tabs**: Claude on its own, and a work tab with side-by-side shells (this is the
+built-in layout, plus `command` for Claude):
+
+```yaml
+terminals:
+  - id: claude
+    name: Claude
+    command: claude --continue
+  - id: dev
+    name: Dev
+  - id: test
+    name: Test
+tabs:
+  - title: Claude
+    root: claude
+  - title: Shells
+    root:
+      split: horizontal
+      children: [dev, test]
+```
+
+**Stacked panes**: a big editor shell above a short one for running things:
+
+```yaml
+terminals:
+  - id: edit
+  - id: run
+tabs:
+  - title: Work
+    root:
+      split: vertical
+      children:
+        - {pane: edit, size: 75}
+        - {pane: run, size: 25}
+```
+
+**Nested splits**: `dev` on the left half; `test` over `logs` on the right half. Sizes at
+each level are relative to that split:
+
+```yaml
+terminals:
+  - id: dev
+  - id: test
+  - id: logs
+    dir: /var/log
+    command: tail -f syslog
+tabs:
+  - title: Work
+    root:
+      split: horizontal
+      children:
+        - {pane: dev, size: 50}          # 50% of the tab's width
+        - split: vertical
+          size: 50                       # the other 50%
+          children:
+            - {pane: test, size: 70}     # 70% of this column's height
+            - {pane: logs, size: 30}     # 30%
+```
+
+**Partial sizing**: pin the narrow sidebar and let the rest share the remainder:
+
+```yaml
+terminals:
+  - id: files
+  - id: dev
+  - id: test
+tabs:
+  - title: Work
+    root:
+      split: horizontal
+      children:
+        - {pane: files, size: 20}   # 20%
+        - dev                       # 40%
+        - test                      # 40%
+```
+
+**Everything together**: a full layout with directories, commands and sizes. The Claude
+terminal starts in the repo; `notes` starts in `~/notes`; `server` runs a command from a
+subdirectory of the repo:
+
+```yaml
+terminals:
+  - id: claude
+    name: Claude
+    command: claude --continue
+  - id: server
+    name: Server
+    dir: backend                 # relative to the repo directory
+    command: make run
+  - id: test
+    name: Test
+    dir: backend
+  - id: notes
+    name: Notes
+    dir: ~/notes
+tabs:
+  - title: Claude
+    root: claude
+  - title: Backend
+    root:
+      split: horizontal
+      children:
+        - {pane: server, size: 60}
+        - {pane: test, size: 40}
+  - title: Notes
+    root: notes
+```
 
 Ready-to-copy files:
 
@@ -431,6 +611,26 @@ Ready-to-copy files:
 mkdir -p ~/.config/stay
 cp examples/my-workspace.yaml ~/.config/stay/layout.yaml
 ```
+
+### Validation and common mistakes
+
+A file that exists but is invalid stops the daemon with a message naming the problem.
+Unknown fields are errors too, so a typo such as `comand:` is caught instead of ignored.
+
+| Mistake | Error says |
+|---|---|
+| a pane names a terminal that isn't defined | `unknown terminal "x"` |
+| the same terminal in two panes | `each terminal may appear once` |
+| duplicate `id` | `duplicate terminal id` |
+| split with fewer than two children | `a split needs at least 2 children` |
+| `split` other than `horizontal`/`vertical` | `split must be horizontal or vertical` |
+| a node with both `pane` and `split`, or neither | `exactly one of pane or split` |
+| `size` of 0, negative, or 100 and above | `size must be a percentage greater than 0 and less than 100` |
+| every child sized but not summing to 100 | `sizes in a split must add up to 100` |
+| sized children already use up 100 | `leave no room for the children without one` |
+| `size` on a tab's `root` | `size only applies to a child of a split` |
+| `dir` that doesn't exist | `working directory "..." does not exist` |
+| `dir: ~` unquoted | no error, but the terminal gets the default directory (bare `~` is YAML null) |
 
 ---
 
@@ -478,9 +678,12 @@ Tests never need a browser: they drive the websocket directly against an in-proc
 Releases are built by [GoReleaser](https://goreleaser.com) from `.goreleaser.yaml`.
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0     # the "release" GitHub Actions workflow does the rest
+git tag v0.2.0
+git push origin v0.2.0     # the "release" GitHub Actions workflow does the rest
 ```
+
+Before tagging, add a `## vX.Y.Z` section to [CHANGELOG.md](CHANGELOG.md); the workflow
+publishes that section as the release notes and fails if it is missing.
 
 The workflow builds the web UI, then static Linux amd64 and arm64 binaries, packs them as
 `stay_<version>_linux_<arch>.tar.gz`, and attaches those plus `checksums.txt` to a GitHub

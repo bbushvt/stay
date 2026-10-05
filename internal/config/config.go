@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,10 +31,14 @@ type Node struct {
 	Terminal  string `json:"terminal,omitempty"`
 	Direction string `json:"direction,omitempty"` // "horizontal" | "vertical"
 	Children  []Node `json:"children,omitempty"`
+	// Size is this node's share of its parent split, in percent (0 < size < 100).
+	// Zero means unset: unsized siblings share what the sized ones leave over.
+	Size float64 `json:"size,omitempty"`
 }
 
 // UnmarshalYAML accepts a bare string (a pane), {pane: id}, or
-// {split: horizontal|vertical, children: [...]}.
+// {split: horizontal|vertical, children: [...]}. A mapping may also carry
+// `size: <percent>` to size it within its parent split.
 func (n *Node) UnmarshalYAML(v *yaml.Node) error {
 	switch v.Kind {
 	case yaml.ScalarNode:
@@ -41,9 +46,10 @@ func (n *Node) UnmarshalYAML(v *yaml.Node) error {
 		return nil
 	case yaml.MappingNode:
 		var m struct {
-			Pane     string `yaml:"pane"`
-			Split    string `yaml:"split"`
-			Children []Node `yaml:"children"`
+			Pane     string   `yaml:"pane"`
+			Split    string   `yaml:"split"`
+			Children []Node   `yaml:"children"`
+			Size     *float64 `yaml:"size"`
 		}
 		if err := v.Decode(&m); err != nil {
 			return err
@@ -55,6 +61,12 @@ func (n *Node) UnmarshalYAML(v *yaml.Node) error {
 			*n = Node{Kind: "split", Direction: m.Split, Children: m.Children}
 		default:
 			return fmt.Errorf("line %d: a layout node needs exactly one of `pane` or `split`", v.Line)
+		}
+		if m.Size != nil {
+			n.Size = *m.Size
+			if n.Size == 0 {
+				n.Size = -1 // explicit `size: 0`: keep it distinct from unset so validation rejects it
+			}
 		}
 		return nil
 	}
@@ -159,6 +171,9 @@ func (c *Config) Validate() error {
 		if tab.Title == "" {
 			return fmt.Errorf("tabs[%d]: title is required", i)
 		}
+		if tab.Root.Size != 0 {
+			return fmt.Errorf("tabs[%d] (%s): size only applies to a child of a split", i, tab.Title)
+		}
 		if err := validateNode(tab.Root, ids, used, fmt.Sprintf("tabs[%d] (%s)", i, tab.Title)); err != nil {
 			return err
 		}
@@ -174,6 +189,9 @@ func (c *Config) Validate() error {
 }
 
 func validateNode(n Node, ids map[string]bool, used map[string]int, where string) error {
+	if n.Size != 0 && (n.Size <= 0 || n.Size >= 100) {
+		return fmt.Errorf("%s: size must be a percentage greater than 0 and less than 100", where)
+	}
 	switch n.Kind {
 	case "pane":
 		if !ids[n.Terminal] {
@@ -187,10 +205,22 @@ func validateNode(n Node, ids map[string]bool, used map[string]int, where string
 		if len(n.Children) < 2 {
 			return fmt.Errorf("%s: a split needs at least 2 children", where)
 		}
+		var total float64
+		sized := 0
 		for _, ch := range n.Children {
 			if err := validateNode(ch, ids, used, where); err != nil {
 				return err
 			}
+			if ch.Size != 0 {
+				total += ch.Size
+				sized++
+			}
+		}
+		switch {
+		case sized == len(n.Children) && math.Abs(total-100) > 0.01:
+			return fmt.Errorf("%s: sizes in a split must add up to 100 when every child has one, got %g", where, total)
+		case sized < len(n.Children) && total >= 100:
+			return fmt.Errorf("%s: sizes in a split leave no room for the children without one (they add up to %g)", where, total)
 		}
 	default:
 		return fmt.Errorf("%s: invalid layout node", where)

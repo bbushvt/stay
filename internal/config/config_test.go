@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,6 +63,11 @@ func TestValidationErrors(t *testing.T) {
 		"one child":    {"terminals: [{id: a}]\ntabs: [{title: t, root: {split: horizontal, children: [a]}}]", "at least 2"},
 		"pane+split":   {"terminals: [{id: a}]\ntabs: [{title: t, root: {pane: a, split: horizontal}}]", "exactly one"},
 		"used twice":   {"terminals: [{id: a}]\ntabs: [{title: t, root: a}, {title: u, root: a}]", "once"},
+		"size 0":       {"terminals: [{id: a},{id: b}]\ntabs: [{title: t, root: {split: horizontal, children: [{pane: a, size: 0}, b]}}]", "greater than 0"},
+		"size 100":     {"terminals: [{id: a},{id: b}]\ntabs: [{title: t, root: {split: horizontal, children: [{pane: a, size: 100}, b]}}]", "less than 100"},
+		"size on root": {"terminals: [{id: a}]\ntabs: [{title: t, root: {pane: a, size: 50}}]", "child of a split"},
+		"sizes != 100": {"terminals: [{id: a},{id: b}]\ntabs: [{title: t, root: {split: horizontal, children: [{pane: a, size: 30}, {pane: b, size: 30}]}}]", "add up to 100"},
+		"no room":      {"terminals: [{id: a},{id: b},{id: c}]\ntabs: [{title: t, root: {split: horizontal, children: [{pane: a, size: 60}, {pane: b, size: 40}, c]}}]", "no room"},
 		"typo field":   {"terminals: [{id: a, comand: ls}]\ntabs: [{title: t, root: a}]", "comand"},
 	}
 	for name, tc := range cases {
@@ -183,5 +189,41 @@ func TestReadmeLayoutExamples(t *testing.T) {
 	}
 	if n == 0 {
 		t.Fatal("no layout blocks found in README")
+	}
+}
+
+func TestSizes(t *testing.T) {
+	c, err := parse(t, `
+terminals: [{id: a}, {id: b}, {id: c}]
+tabs:
+  - title: t
+    root:
+      split: horizontal
+      children:
+        - {pane: a, size: 30}
+        - split: vertical
+          size: 70
+          children: [{pane: b, size: 25.5}, c]
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := c.Tabs[0].Root
+	if root.Children[0].Size != 30 || root.Children[1].Size != 70 || root.Children[1].Children[0].Size != 25.5 || root.Children[1].Children[1].Size != 0 {
+		t.Fatalf("sizes not parsed: %+v", root)
+	}
+}
+
+func TestLayoutJSONIncludesSize(t *testing.T) {
+	c, err := parse(t, "terminals: [{id: a}, {id: b}]\ntabs: [{title: t, root: {split: horizontal, children: [{pane: a, size: 30}, b]}}]")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(c.Layout(func(string) string { return "" }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `"terminal":"a","size":30`) || strings.Count(string(b), `"size"`) != 1 {
+		t.Fatalf("unexpected JSON: %s", b)
 	}
 }

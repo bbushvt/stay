@@ -21,6 +21,11 @@ terminals:
 
 # Each tab's root is a terminal id, or a split of two or more nodes that can
 # themselves be splits. Each terminal may appear once.
+#
+# size: optional percentage (0-100, exclusive) of the parent split, on any child
+#      of a split. Use {pane: id, size: N} for a terminal. If every child has a
+#      size they must add up to 100; otherwise unsized children share the rest.
+#      Sizes are starting values: dragging dividers in the browser still works.
 tabs:
   - title: Claude
     root: claude
@@ -28,6 +33,7 @@ tabs:
     root:
       split: horizontal          # side by side; `vertical` stacks
       children:
-        - dev
+        - {pane: dev, size: 60}
         - split: vertical
+          size: 40
           children: [test, logs]

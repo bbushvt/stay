@@ -21,6 +21,22 @@ web/dist/*
 .env.*
 !.env.example
 
+# Terraform state and variables (state files can contain secrets)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+
+# Keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
 # Logs
 *.log
 npm-debug.log*

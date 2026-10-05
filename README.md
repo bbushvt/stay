@@ -42,62 +42,44 @@ every shell. Closing browsers, switching devices and losing your network are all
 
 ## Quick start in Coder
 
-You need: a Coder template you can edit, a Linux workspace (amd64 or arm64), and a Coder
-deployment with wildcard app hostnames enabled (`--wildcard-access-url`, required for any
-subdomain app).
+You need:
+
+- an existing Coder template you can edit, with a `coder_agent`
+- a Linux workspace (amd64 or arm64)
+- a Coder deployment with wildcard app hostnames enabled (`--wildcard-access-url`), which Coder
+  requires for any subdomain app
 
 Do these three steps in order.
 
-### Step 1. Add STAY to your template
+### Step 1. Add the module to your template
 
-Edit your template's `main.tf` so it contains the three pieces below. **Copy this whole block
-as your starting point**; it is one coherent example, not three alternatives. If your template
-already has a `coder_agent`, keep yours and just merge in the `env` line and the `module`
-block.
+Add this block to your template's `main.tf`, anywhere alongside your existing `coder_agent`.
+It is the only thing STAY needs:
 
 ```tf
-# RECOMMENDED: ask which repository the workspace is for.
-# (Skip this if your template already has a repo parameter or a hard-coded URL.)
-data "coder_parameter" "repo_url" {
-  name         = "repo_url"
-  display_name = "Git repository"
-  type         = "string"
-  default      = "https://github.com/bbushvt/stay.git"
-  mutable      = false
-}
-
-resource "coder_agent" "main" {
-  os   = "linux"
-  arch = "amd64"
-
-  # RECOMMENDED: STAY reads this variable to choose where each terminal starts:
-  #   https://github.com/org/my-app.git  ->  $HOME/my-app   (falls back to $HOME)
-  # Nothing sets it automatically. Without it, terminals simply start in $HOME.
-  env = {
-    CODER_GIT_REPO_URL = data.coder_parameter.repo_url.value
-  }
-}
-
-# REQUIRED: this is what installs and starts STAY and adds the button.
 module "stay" {
   source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
-  agent_id = coder_agent.main.id
+  agent_id = coder_agent.main.id   # use your agent's reference if it isn't named "main"
 }
 ```
 
-What each piece does:
+The module installs the STAY binary, starts the daemon, and adds the **STAY** button to the
+workspace page. `ref=v0.1.0` is the STAY release to use; pinning a tag keeps template updates
+deliberate.
 
-| Piece | Required? | Purpose |
-|---|---|---|
-| `module "stay"` | **yes** | installs the binary, starts the daemon, adds the **STAY** button |
-| `env = { CODER_GIT_REPO_URL = ... }` on the agent | recommended | terminals start in `$HOME/<repo>` instead of `$HOME` |
-| `data "coder_parameter" "repo_url"` | no | just one way to supply that URL; use any source you like |
+**Recommended: make sure your agent exports `CODER_GIT_REPO_URL`.** STAY uses it to start each
+terminal in `$HOME/<repo>` (for `https://github.com/org/my-app.git`, that is `$HOME/my-app`).
+If your existing `coder_agent` doesn't already set it, add it to that agent's `env` map:
 
-`ref=v0.1.0` is the STAY release to use. Pinning a tag keeps template updates deliberate.
+```hcl
+env = {
+  CODER_GIT_REPO_URL = "https://github.com/org/my-app.git"   # or your template's repo variable
+}
+```
 
-STAY does **not** clone your repository. Clone it with whatever you already use (for example
-the `git-clone` module from the Coder registry, or your own `coder_script`), using the same
-URL. If the directory is not there yet when STAY starts, terminals start in `$HOME`.
+Without it, terminals simply start in `$HOME`. STAY does not clone the repository; clone it
+with whatever your template already does, using the same URL. If the directory isn't there yet
+when STAY starts, terminals start in `$HOME`.
 
 ### Step 2. Push the template and (re)start a workspace
 
@@ -486,7 +468,7 @@ request.
 | `address already in use` | something else holds the port. Pick another with `--listen 127.0.0.1:PORT` (and set the module's `port` to match) |
 | `--listen ... is not a loopback address` | intentional. STAY has no auth, so it refuses to bind publicly |
 | `working directory "..." does not exist` | a `dir` in your layout points at a missing path. Fix it or remove it to use the default |
-| Terminals start in `$HOME`, not the repo | `CODER_GIT_REPO_URL` is not in the daemon's environment, or the repo is not cloned yet. See [quick start, Step 1](#step-1-add-stay-to-your-template) |
+| Terminals start in `$HOME`, not the repo | `CODER_GIT_REPO_URL` is not in the daemon's environment, or the repo is not cloned yet. See [quick start, Step 1](#step-1-add-the-module-to-your-template) |
 | Everything vanished after the workspace restarted | expected: STAY survives closing browsers, not stopping workspaces. Use `claude --continue` as the Claude terminal's command to resume the conversation |
 | Install script fails with "no releases yet" | the module downloads from GitHub releases; publish one first (see [Releasing](#releasing)) |
 | Terminal looks garbled after reconnecting | programs that do not repaint on resize cannot be fully restored from replayed output; run `reset` or `clear`. Claude Code and similar full-screen apps redraw on their own |

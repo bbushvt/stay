@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       // `npm run dev` talks to a locally running stay daemon.
       "/ws": { target: "ws://127.0.0.1:7681", ws: true },
+      "/api": { target: "http://127.0.0.1:7681" },
     },
   },
 });

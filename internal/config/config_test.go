@@ -163,3 +163,25 @@ func TestAllExamplesValid(t *testing.T) {
 		}
 	}
 }
+
+// Layout examples in the README must stay valid.
+func TestReadmeLayoutExamples(t *testing.T) {
+	b, err := os.ReadFile("../../README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, block := range strings.Split(string(b), "```yaml\n")[1:] {
+		block, _, _ = strings.Cut(block, "```")
+		if !strings.Contains(block, "terminals:") {
+			continue
+		}
+		n++
+		if _, err := Parse(strings.NewReader(block)); err != nil {
+			t.Errorf("README layout block %d invalid: %v\n%s", n, err, block)
+		}
+	}
+	if n == 0 {
+		t.Fatal("no layout blocks found in README")
+	}
+}

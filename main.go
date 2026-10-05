@@ -22,10 +22,18 @@ import (
 	"github.com/bbushvt/stay/web"
 )
 
+// version is stamped by GoReleaser (-X main.version=...).
+var version = "dev"
+
 func main() {
 	listen := flag.String("listen", "127.0.0.1:7681", "loopback address to listen on")
 	configPath := flag.String("config", "", "layout file (default ~/.config/stay/layout.yaml, else built-in layout)")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println("stay", version)
+		return
+	}
 
 	if err := requireLoopback(*listen); err != nil {
 		log.Fatal(err)
@@ -58,7 +66,7 @@ func main() {
 		_ = srv.Close() // websockets are hijacked; Shutdown doesn't wait for them
 	}()
 
-	log.Printf("stay listening on http://%s", *listen)
+	log.Printf("stay %s listening on http://%s", version, *listen)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}

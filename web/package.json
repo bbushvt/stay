@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postbuild": "node -e \"require('fs').closeSync(require('fs').openSync('dist/.gitkeep','a'))\""
   },
   "dependencies": {
     "@xterm/addon-clipboard": "^0.2.0",

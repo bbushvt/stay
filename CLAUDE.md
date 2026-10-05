@@ -49,6 +49,15 @@ cd web && npm run dev    # vite dev server, proxies /ws to 127.0.0.1:7681
 - Build only the current milestone; keep structure ready, don't build ahead.
 - Don't commit `web/dist` contents or the `stay` binary (gitignored).
 
+## Release and deployment
+- `.goreleaser.yaml` + `.github/workflows/{ci,release}.yml`; tag `vX.Y.Z` to release.
+  Dry run: `goreleaser release --snapshot --clean`. Archive names are a contract with
+  `terraform/run.sh`.
+- `terraform/` is the Coder module (`main.tf`, `run.sh`, README). Settings are exported as
+  `STAY_*` env vars ahead of `run.sh`, so keep `run.sh` free of Terraform templating and
+  keep variable validations strict (inputs reach a shell).
+- Test `run.sh` without network via `STAY_DOWNLOAD_BASE=file://...` and a throwaway `HOME`.
+
 ## Working inside a STAY/Coder workspace
 You may be running inside one of the user's terminals. Never kill processes you didn't
 start. Only bind the STAY port (7681) when testing; no other ports.
@@ -58,4 +67,4 @@ start. Only bind the STAY port (7681) when testing; no other ports.
 2. Persistence: ring buffer, replay (`sync` messages), SIGWINCH redraw nudge — **done**
 3. Multiple terminals: tabs and splits — **done**
 4. YAML layout config + Coder env integration — **done**
-5. GoReleaser + Coder Terraform module
+5. GoReleaser + Coder Terraform module — **done** (untested inside a real Coder deployment)

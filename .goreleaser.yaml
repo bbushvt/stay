@@ -1,0 +1,41 @@
+# GoReleaser config. Release flow: push a tag vX.Y.Z; .github/workflows/release.yml runs this.
+# Local dry run:  goreleaser release --snapshot --clean
+version: 2
+project_name: stay
+
+before:
+  hooks:
+    # The frontend is embedded in the binary (web/embed.go), so build it first.
+    - npm ci --prefix web
+    - npm run build --prefix web
+    # Vite empties web/dist, including the tracked placeholder; restore it so
+    # the git tree stays clean.
+    - touch web/dist/.gitkeep
+
+builds:
+  - id: stay
+    main: .
+    binary: stay
+    env:
+      - CGO_ENABLED=0
+    goos: [linux] # Coder workspaces are Linux
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - id: stay
+    formats: [tar.gz]
+    # The Coder module's install script relies on this exact name.
+    name_template: "stay_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - examples/*.yaml
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:", "^chore:"]

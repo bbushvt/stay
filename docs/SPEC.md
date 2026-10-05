@@ -242,4 +242,22 @@ No decision above is wrong enough to change the plan; R2 and R6 are the ones to 
 3. Multiple terminals: tabs and splits via react-resizable-panels. Done (layout is
    derived in the frontend; terminals are defined in `main.go` until M4).
 4. YAML layout + Coder environment integration. Done.
-5. GoReleaser builds, Coder Terraform module.
+5. GoReleaser builds, Coder Terraform module. Done (see §10).
+
+## 10. Release and deployment (milestone 5)
+
+- **Build:** GoReleaser (`.goreleaser.yaml`) runs `npm ci` + `npm run build` in `web/`, then
+  builds static (`CGO_ENABLED=0`) Linux amd64/arm64 binaries with the frontend embedded and
+  `main.version` stamped, archives them as `stay_<version>_linux_<arch>.tar.gz`, and writes
+  `checksums.txt`. Triggered by a `v*` tag via `.github/workflows/release.yml`; CI
+  (`ci.yml`) runs `make check` on pushes and PRs.
+- **Module:** `terraform/` ([README](../terraform/README.md)) provides a `coder_script`
+  (install with checksum verification, write layout, start detached, idempotent, never
+  restarts a live daemon) and a `coder_app` (`subdomain = true`, `share = "owner"`,
+  healthcheck). All inputs are validated, since they are interpolated into a shell script.
+- **Verified locally:** `goreleaser check` and a full `--snapshot` build; the install script
+  against those real archives (fresh install, re-run, tampered checksum, failed upgrade, no
+  releases); `terraform validate` and `plan` against the real `coder/coder` provider.
+- **Not verifiable outside a Coder deployment:** that Coder's app proxy preserves the
+  `Host` header so the websocket same-origin check passes (R5). If it does not, connections
+  fail with 403 and an allowed-origin option is the fix.

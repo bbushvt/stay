@@ -27,9 +27,11 @@ every shell. Closing browsers, switching devices and losing your network are all
 
 ## Contents
 
-- [Use it in a Coder template](#use-it-in-a-coder-template)
+- [Quick start in Coder](#quick-start-in-coder) (start here)
+- [Using STAY](#using-stay)
+- [Coder module reference](#coder-module-reference) (options, variations, what the script does)
 - [Build from source](#build-from-source)
-- [Run it](#run-it)
+- [Run it outside Coder](#run-it-outside-coder)
 - [Configure terminals and layout](#configure-terminals-and-layout)
 - [Development](#development)
 - [Releasing](#releasing)
@@ -38,32 +40,24 @@ every shell. Closing browsers, switching devices and losing your network are all
 
 ---
 
-## Use it in a Coder template
+## Quick start in Coder
 
-The `terraform/` directory in this repo is a Coder module. It installs the release binary
-(checksum-verified), starts the daemon, and adds an **STAY** button to the workspace page.
-It needs a published release first; see [Releasing](#releasing).
+You need: a Coder template you can edit, a Linux workspace (amd64 or arm64), and a Coder
+deployment with wildcard app hostnames enabled (`--wildcard-access-url`, required for any
+subdomain app).
 
-### 1. Minimal
+Do these three steps in order.
 
-Add the module to your template's `main.tf`, next to your `coder_agent`:
+### Step 1. Add STAY to your template
 
-```tf
-module "stay" {
-  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
-  agent_id = coder_agent.main.id
-}
-```
-
-Push the template (`coder templates push`), restart your workspace, and click **STAY**.
-`ref=` is the release tag; pinning a tag keeps template updates deliberate.
-
-### 2. With the repo directory (recommended)
-
-Each terminal starts in `$HOME/<repo>`, where `<repo>` comes from `CODER_GIT_REPO_URL`. That
-variable is **not** set automatically; expose it in the agent's environment:
+Edit your template's `main.tf` so it contains the three pieces below. **Copy this whole block
+as your starting point**; it is one coherent example, not three alternatives. If your template
+already has a `coder_agent`, keep yours and just merge in the `env` line and the `module`
+block.
 
 ```tf
+# RECOMMENDED: ask which repository the workspace is for.
+# (Skip this if your template already has a repo parameter or a hard-coded URL.)
 data "coder_parameter" "repo_url" {
   name         = "repo_url"
   display_name = "Git repository"
@@ -76,37 +70,112 @@ resource "coder_agent" "main" {
   os   = "linux"
   arch = "amd64"
 
-  # STAY reads this to choose each terminal's default directory:
+  # RECOMMENDED: STAY reads this variable to choose where each terminal starts:
   #   https://github.com/org/my-app.git  ->  $HOME/my-app   (falls back to $HOME)
+  # Nothing sets it automatically. Without it, terminals simply start in $HOME.
   env = {
     CODER_GIT_REPO_URL = data.coder_parameter.repo_url.value
   }
 }
 
+# REQUIRED: this is what installs and starts STAY and adds the button.
 module "stay" {
   source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
   agent_id = coder_agent.main.id
 }
 ```
 
-STAY does not clone the repository. Use whatever you already use for that (for example the
-`git-clone` module from the Coder registry, or your own `coder_script`) and give it the same
-URL. If the directory does not exist yet when STAY starts, terminals start in `$HOME`.
+What each piece does:
 
-### 3. With a layout shipped in the template
+| Piece | Required? | Purpose |
+|---|---|---|
+| `module "stay"` | **yes** | installs the binary, starts the daemon, adds the **STAY** button |
+| `env = { CODER_GIT_REPO_URL = ... }` on the agent | recommended | terminals start in `$HOME/<repo>` instead of `$HOME` |
+| `data "coder_parameter" "repo_url"` | no | just one way to supply that URL; use any source you like |
 
-Pass the layout as a string or load it from a file next to your template. It is written to
-`~/.config/stay/layout.yaml` each time the workspace starts.
+`ref=v0.1.0` is the STAY release to use. Pinning a tag keeps template updates deliberate.
+
+STAY does **not** clone your repository. Clone it with whatever you already use (for example
+the `git-clone` module from the Coder registry, or your own `coder_script`), using the same
+URL. If the directory is not there yet when STAY starts, terminals start in `$HOME`.
+
+### Step 2. Push the template and (re)start a workspace
+
+```sh
+coder templates push <your-template-name>
+```
+
+Then **restart** an existing workspace (or create a new one) so the module's script runs.
+The script runs on every workspace start; the first run downloads and installs STAY.
+
+### Step 3. Click **STAY**
+
+Open the workspace page and click the **STAY** button. You get a terminal in your browser.
+See [Using STAY](#using-stay) for what to do next.
+
+If the button does not appear or the page does not load, see
+[Troubleshooting](#troubleshooting).
+
+---
+
+## Using STAY
+
+Once the **STAY** button opens the page:
+
+- **First launch:** with no layout file you get three terminals: **Claude** (runs `claude` if
+  it is installed), **Dev** and **Test**. Claude has its own tab; Dev and Test share a
+  second tab, side by side.
+- **Type like any terminal.** Each one is a real shell in your repo directory (or `$HOME`).
+  Links in the output are clickable, and programs can copy to your clipboard.
+- **Switch tabs** with the tab bar. Terminals on hidden tabs keep running and stay connected.
+- **Resize splits** by dragging the divider. Sizes and the selected tab are remembered in
+  that browser only.
+- **Close the browser whenever you like.** Nothing stops. Your shells, running programs and
+  Claude Code keep going.
+- **Come back from any device.** Click **STAY** again. Each terminal replays its recent
+  output and full-screen programs redraw, so you see where you left off. Several browsers can
+  be attached at the same time; whichever one resized last decides the terminal's size.
+- **If a program exits** (for example you type `exit`), the pane shows "process exited with
+  code N" and a **Restart** button that starts a fresh shell there.
+- **If your network drops,** the page reconnects by itself and replays.
+- **What does end your terminals:** stopping the workspace, or the STAY daemon being stopped
+  or restarted. That is the one thing STAY cannot survive. Using `claude --continue` as the
+  Claude terminal's command picks the conversation back up afterwards.
+- **Change the terminals and layout** (names, directories, startup commands, tabs, splits) by
+  providing a layout file. See [Configure terminals and layout](#configure-terminals-and-layout)
+  and the [module variations](#variations-each-one-independent).
+
+---
+
+## Coder module reference
+
+The `terraform/` directory in this repo is the module. This section is reference material;
+you do not need any of it for the [quick start](#quick-start-in-coder).
+
+### Variations (each one independent)
+
+These are **not steps** and do not build on each other. Each one is a change you can make to
+the `module "stay" { ... }` block from Step 1; apply whichever you want, in any combination.
+
+**Pin the STAY version** (the default `latest` installs the newest release when the workspace
+starts):
 
 ```tf
 module "stay" {
   source       = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
   agent_id     = coder_agent.main.id
-  stay_version = "0.1.0"        # pin the binary too; default is "latest"
-  order        = 1
-  group        = "Terminals"
+  stay_version = "0.1.0"
+}
+```
 
-  # Inline...
+**Ship a layout inline** (written to `~/.config/stay/layout.yaml` each time the workspace
+starts):
+
+```tf
+module "stay" {
+  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
+  agent_id = coder_agent.main.id
+
   layout = <<-YAML
     terminals:
       - id: claude
@@ -122,13 +191,35 @@ module "stay" {
       - title: Work
         root: {split: horizontal, children: [dev, test]}
   YAML
-
-  # ...or from a file (use one or the other):
-  # layout = file("${path.module}/stay-layout.yaml")
 }
 ```
 
-### 4. Everything the module accepts
+**Ship a layout from a file** next to your template (use this *instead of* the inline form,
+not in addition to it):
+
+```tf
+module "stay" {
+  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
+  agent_id = coder_agent.main.id
+  layout   = file("${path.module}/stay-layout.yaml")
+}
+```
+
+A ready-made layout to start from is [`examples/my-workspace.yaml`](examples/my-workspace.yaml).
+
+**Change the port or where the button appears:**
+
+```tf
+module "stay" {
+  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.1.0"
+  agent_id = coder_agent.main.id
+  port     = 7700
+  order    = 1
+  group    = "Terminals"
+}
+```
+
+### All module inputs
 
 | Input | Default | Notes |
 |---|---|---|
@@ -143,7 +234,7 @@ module "stay" {
 
 Output: `app_url` (the in-workspace URL).
 
-### What happens on each workspace start
+### What the module does on each workspace start
 
 1. Resolves the release (`latest` follows GitHub's `/releases/latest` redirect; no API token
    or rate limit).
@@ -161,8 +252,7 @@ Things to know:
 - If an upgrade fails (offline, bad checksum) the already-installed binary still starts.
 - Terminals inherit the daemon's environment, which is the agent's: `CODER_*`,
   `SSH_AUTH_SOCK`, your `coder_agent.env`, and so on.
-- The app uses `subdomain = true`. Your Coder deployment needs wildcard app hostnames
-  configured (`--wildcard-access-url`); that is a Coder requirement for any subdomain app.
+- The app is a subdomain app (`subdomain = true`) shared with the owner only by default.
 
 More module detail: [terraform/README.md](terraform/README.md).
 
@@ -225,7 +315,7 @@ Check the build:
 
 ---
 
-## Run it
+## Run it outside Coder
 
 ```sh
 ./stay
@@ -233,8 +323,9 @@ Check the build:
 # 2026/10/04 19:00:04 stay dev listening on http://127.0.0.1:7681
 ```
 
-Then open <http://127.0.0.1:7681>. Inside a Coder workspace, use the **STAY** button
-instead (see above); the daemon is only reachable from inside the workspace.
+Then open <http://127.0.0.1:7681>. (Inside a Coder workspace, use the module and the **STAY**
+button instead; see the [quick start](#quick-start-in-coder). The daemon is only reachable
+from inside the machine it runs on.)
 
 ### Flags
 
@@ -260,12 +351,7 @@ kill "$(cat ~/.local/state/stay/stay.pid)"
 On SIGINT/SIGTERM the daemon shuts down and hangs up the shells it started. It only touches
 processes it spawned.
 
-### What you will see
-
-With no layout file, STAY starts three terminals: **Claude** (runs `claude` if it is on
-your `PATH`), **Dev** and **Test**, arranged as a Claude tab and a Shells tab with Dev and
-Test side by side. Drag the dividers to resize; sizes and the selected tab are remembered in
-that browser only. If a shell exits, its pane shows the exit code and a **Restart** button.
+What the page does and how to use it is described in [Using STAY](#using-stay).
 
 ---
 
@@ -400,7 +486,7 @@ request.
 | `address already in use` | something else holds the port. Pick another with `--listen 127.0.0.1:PORT` (and set the module's `port` to match) |
 | `--listen ... is not a loopback address` | intentional. STAY has no auth, so it refuses to bind publicly |
 | `working directory "..." does not exist` | a `dir` in your layout points at a missing path. Fix it or remove it to use the default |
-| Terminals start in `$HOME`, not the repo | `CODER_GIT_REPO_URL` is not in the daemon's environment, or the repo is not cloned yet. See [template example 2](#2-with-the-repo-directory-recommended) |
+| Terminals start in `$HOME`, not the repo | `CODER_GIT_REPO_URL` is not in the daemon's environment, or the repo is not cloned yet. See [quick start, Step 1](#step-1-add-stay-to-your-template) |
 | Everything vanished after the workspace restarted | expected: STAY survives closing browsers, not stopping workspaces. Use `claude --continue` as the Claude terminal's command to resume the conversation |
 | Install script fails with "no releases yet" | the module downloads from GitHub releases; publish one first (see [Releasing](#releasing)) |
 | Terminal looks garbled after reconnecting | programs that do not repaint on resize cannot be fully restored from replayed output; run `reset` or `clear`. Claude Code and similar full-screen apps redraw on their own |

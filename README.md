@@ -1,5 +1,7 @@
 # STAY — Shells That Await You
 
+![STAY running in a Coder workspace](docs/stay.png)
+
 A persistent web terminal for [Coder](https://coder.com) workspaces. Open a browser, click a
 button, and you are back in your running terminals: Claude Code in one, a few more for
 running and testing code. **Close the browser and everything keeps running.** Open it from

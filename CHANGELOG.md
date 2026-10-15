@@ -3,6 +3,15 @@
 Each release's notes are taken from the matching `## vX.Y.Z` section below and published as
 the GitHub release body (see `.github/workflows/release.yml`).
 
+## v0.3.2
+
+### Development
+- `mise.toml` now also installs the GitHub CLI (`gh`), used for checking CI and release runs.
+
+### Upgrading
+No change to the daemon or the module; nothing needs to be done. To pin this release, set
+`ref=v0.3.2` in your template's `module "stay"` source.
+
 ## v0.3.1
 
 ### Fixed

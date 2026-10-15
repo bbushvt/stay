@@ -64,6 +64,10 @@ export function Terminal({ id, active }: { id: string; active: boolean }) {
     let exited = false;
     let retry = 0;
     let retryTimer: number | undefined;
+    // True while replayed history is being parsed. History contains queries
+    // (DA, OSC 10/11, CPR, DECRQM) that programs asked long ago; xterm would
+    // answer them again and the replies would be typed into the live PTY.
+    let replaying = false;
 
     const send = (m: ClientMessage) => ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify(m));
 
@@ -82,9 +86,14 @@ export function Terminal({ id, active }: { id: string; active: boolean }) {
         const msg = JSON.parse(ev.data) as ServerMessage;
         if (msg.type === "sync" && msg.state === "start") {
           // Server is replaying history: start from a clean screen (SPEC §5).
+          replaying = true;
           term.reset();
         } else if (msg.type === "sync" && msg.state === "end") {
           // Fit to this browser, then force SIGWINCH so TUIs repaint.
+          // write() is async: clear the flag only once the parser has drained.
+          term.write("", () => {
+            replaying = false;
+          });
           doFit();
           send({ type: "resize", cols: term.cols, rows: term.rows, redraw: true });
         } else if (msg.type === "exit") {
@@ -101,9 +110,9 @@ export function Terminal({ id, active }: { id: string; active: boolean }) {
     connect();
 
     const subs = [
-      term.onData((d) => ws?.readyState === WebSocket.OPEN && ws.send(enc.encode(d))),
+      term.onData((d) => !replaying && ws?.readyState === WebSocket.OPEN && ws.send(enc.encode(d))),
       term.onBinary((d) => {
-        if (ws?.readyState === WebSocket.OPEN) ws.send(Uint8Array.from(d, (c) => c.charCodeAt(0)));
+        if (!replaying && ws?.readyState === WebSocket.OPEN) ws.send(Uint8Array.from(d, (c) => c.charCodeAt(0)));
       }),
       term.onResize(({ cols, rows }) => send({ type: "resize", cols, rows })),
     ];

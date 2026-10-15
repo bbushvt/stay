@@ -3,6 +3,24 @@
 Each release's notes are taken from the matching `## vX.Y.Z` section below and published as
 the GitHub release body (see `.github/workflows/release.yml`).
 
+## v0.3.1
+
+### Fixed
+- **Garbage text after reconnecting.** Reopening the browser could print strings like
+  `10;rgb:ffff/ffff/ffff11;rgb:0000/0000/0000` and `2RR0;276;0c` into a terminal. The replayed
+  history contains questions programs once asked the terminal (colors, cursor position,
+  capabilities); the browser answered them again and the answers were typed into the live
+  shell. The browser now ignores those automatic answers while history is replaying. Text
+  typed during the brief replay is dropped. Garbage already in a terminal's history stays
+  until it scrolls off or the terminal restarts.
+
+### Upgrading
+This is a frontend change inside the daemon binary. A running daemon is never restarted by
+the module, so the new version takes effect the next time the daemon starts (for example
+after a workspace restart). Restarting the daemon ends running shells. To use this release,
+set `ref=v0.3.1` in your template's `module "stay"` source (`stay_version` defaults to
+`latest`).
+
 ## v0.3.0
 
 ### Added

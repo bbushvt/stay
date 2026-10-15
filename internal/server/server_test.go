@@ -36,7 +36,7 @@ func newTestServerMgr(t *testing.T) (*httptest.Server, *terminal.Manager) {
 	}
 	t.Cleanup(mgr.Close)
 	assets := fstest.MapFS{"index.html": {Data: []byte("<html>stay</html>")}}
-	ts := httptest.NewServer(New(mgr, config.Layout{Workspace: "ws", Tabs: []config.Tab{{Title: "T", Root: config.Node{Kind: "pane", Terminal: "main"}}}}, assets).Handler())
+	ts := httptest.NewServer(New(mgr, config.Layout{Workspace: "ws", Tabs: []config.Tab{{Title: "T", Root: config.Node{Kind: "pane", Terminal: "main"}}}}, assets, "1.2.3").Handler())
 	t.Cleanup(ts.Close)
 	return ts, mgr
 }
@@ -316,7 +316,7 @@ func TestLayoutEndpoint(t *testing.T) {
 	}
 	tabs := raw["tabs"].([]any)
 	root := tabs[0].(map[string]any)["root"].(map[string]any)
-	if raw["workspace"] != "ws" || len(tabs) != 1 || root["kind"] != "pane" || root["terminal"] != "main" {
+	if raw["workspace"] != "ws" || raw["version"] != "1.2.3" || len(tabs) != 1 || root["kind"] != "pane" || root["terminal"] != "main" {
 		t.Fatalf("unexpected layout JSON: %v", raw)
 	}
 }

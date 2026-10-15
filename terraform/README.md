@@ -6,7 +6,7 @@ the workspace page. STAY is a persistent web terminal: close the browser and you
 
 ```tf
 module "stay" {
-  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.3.2"
+  source   = "git::https://github.com/bbushvt/stay.git//terraform?ref=v0.4.0"
   agent_id = coder_agent.main.id
 
   # optional: pin a release, and ship your layout with the template
@@ -54,7 +54,7 @@ module "stay" {
 
 ## Releasing
 
-Push a tag: `git tag v0.3.2 && git push origin v0.3.2`. The `release` workflow runs
+Push a tag: `git tag v0.4.0 && git push origin v0.4.0`. The `release` workflow runs
 GoReleaser, which builds the frontend, then the Linux amd64/arm64 binaries, archives,
 and `checksums.txt`. The archive naming in `.goreleaser.yaml` is a contract with
 `run.sh`. Dry run locally: `goreleaser release --snapshot --clean`.

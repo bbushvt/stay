@@ -98,3 +98,44 @@ body,
 .notice {
   padding: 24px;
 }
+.about-btn {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  padding: 6px 10px;
+  margin-right: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+.about-btn:hover {
+  color: var(--fg);
+}
+.about {
+  background: var(--bar);
+  color: var(--fg);
+  border: 1px solid var(--sep);
+  border-radius: 6px;
+  padding: 16px 24px;
+  min-width: 240px;
+}
+.about::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+.about h2 {
+  margin: 0;
+}
+.about a {
+  color: var(--accent);
+}
+.about .muted {
+  color: var(--muted);
+}
+.about button {
+  background: var(--sep);
+  color: var(--fg);
+  border: 0;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font: inherit;
+  cursor: pointer;
+}

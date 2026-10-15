@@ -29,14 +29,16 @@ const (
 
 // Server routes HTTP requests to sessions and static assets.
 type Server struct {
-	terms  *terminal.Manager
-	layout config.Layout
-	assets fs.FS
+	terms   *terminal.Manager
+	layout  config.Layout
+	assets  fs.FS
+	version string
 }
 
-// New builds a Server. assets is the frontend root (index.html at its top level).
-func New(terms *terminal.Manager, layout config.Layout, assets fs.FS) *Server {
-	return &Server{terms: terms, layout: layout, assets: assets}
+// New builds a Server. assets is the frontend root (index.html at its top level);
+// version is the daemon's release version, shown in the UI's About dialog.
+func New(terms *terminal.Manager, layout config.Layout, assets fs.FS, version string) *Server {
+	return &Server{terms: terms, layout: layout, assets: assets, version: version}
 }
 
 // Handler returns the HTTP handler.
@@ -52,7 +54,10 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) handleLayout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(s.layout)
+	_ = json.NewEncoder(w).Encode(struct {
+		config.Layout
+		Version string `json:"version"`
+	}{s.layout, s.version})
 }
 
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {

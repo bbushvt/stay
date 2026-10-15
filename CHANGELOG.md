@@ -3,6 +3,22 @@
 Each release's notes are taken from the matching `## vX.Y.Z` section below and published as
 the GitHub release body (see `.github/workflows/release.yml`).
 
+## v0.4.0
+
+### Added
+- **About button.** The left end of the tab bar has an **About** button. It opens a small
+  dialog with the running STAY version, who created it, a link to the repository and the
+  license. Esc or a click outside closes it. `GET /api/layout` now also returns the daemon's
+  `version`.
+- **MIT license.** The repository now includes a `LICENSE` file (MIT, Bryan Bush).
+
+### Upgrading
+This is a frontend and daemon change inside the binary. A running daemon is never restarted
+by the module, so the new version takes effect the next time the daemon starts (for example
+after a workspace restart). Restarting the daemon ends running shells. To pin this release,
+set `ref=v0.4.0` in your template's `module "stay"` source (`stay_version` defaults to
+`latest`).
+
 ## v0.3.2
 
 ### Development

@@ -6,7 +6,7 @@ export type Node =
 
 export type Tab = { id: string; title: string; root: Node };
 
-export type Layout = { workspace?: string; tabs: Tab[] };
+export type Layout = { workspace?: string; version: string; tabs: Tab[] };
 
 export function paneIds(node: Node): string[] {
   return node.kind === "pane" ? [node.terminal] : node.children.flatMap(paneIds);

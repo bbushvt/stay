@@ -39,6 +39,7 @@ every shell. Closing browsers, switching devices and losing your network are all
 - [Releasing](#releasing)
 - [Troubleshooting](#troubleshooting)
 - [Security model](#security-model)
+- [License](#license)
 
 ---
 
@@ -115,6 +116,7 @@ Once the **STAY** button opens the page:
   when text is selected (with nothing selected it still sends an interrupt) and **Ctrl-V**
   pastes; **Ctrl-Shift-C/V** always copy and paste. On a Mac, use **Cmd-C** and **Cmd-V**;
   **Ctrl-C** always interrupts.
+- **About** (left end of the tab bar) shows the running version, who made STAY and its license.
 - **Switch tabs** with the tab bar. Terminals on hidden tabs keep running and stay connected.
 - **Resize splits** by dragging the divider. Sizes and the selected tab are remembered in
   that browser only.
@@ -740,3 +742,9 @@ who can reach it.
   files like any other script.
 
 The full threat discussion and the other known risks are in [docs/SPEC.md §7–8](docs/SPEC.md).
+
+---
+
+## License
+
+STAY is released under the [MIT License](LICENSE). Copyright (c) 2026 Bryan Bush.

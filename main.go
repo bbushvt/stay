@@ -52,7 +52,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              *listen,
-		Handler:           server.New(terms, cfg.Layout(os.Getenv), web.Assets()).Handler(),
+		Handler:           server.New(terms, cfg.Layout(os.Getenv), web.Assets(), version).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

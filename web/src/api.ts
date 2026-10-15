@@ -1,13 +1,13 @@
 import type { Layout, Tab } from "./layout";
 
-type WireLayout = { workspace?: string; tabs: Omit<Tab, "id">[] };
+type WireLayout = { workspace?: string; version?: string; tabs: Omit<Tab, "id">[] };
 
 export async function fetchLayout(): Promise<Layout> {
   const res = await fetch("api/layout");
   if (!res.ok) throw new Error(`layout: ${res.status}`);
   const wire: WireLayout = await res.json();
   // Tabs are identified by position; titles need not be unique.
-  return { workspace: wire.workspace, tabs: wire.tabs.map((t, i) => ({ ...t, id: `tab${i}` })) };
+  return { workspace: wire.workspace, version: wire.version ?? "unknown", tabs: wire.tabs.map((t, i) => ({ ...t, id: `tab${i}` })) };
 }
 
 // Relative URLs so the app works behind any proxy path prefix.
